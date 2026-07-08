@@ -75,11 +75,11 @@ C:\Program Files\Tivoli\TSM\TDPSql\
 ### **Schritt 2: SQL-Tracking-Tabellen erstellen**
 
 ```powershell
-# Auf SRPSDSQL011 als Admin ausführen:
-sqlcmd -S SRPSDSQL011 -i "C:\Program Files\Tivoli\TSM\TDPSql\TDP-Backup-System\01_TDP_BackupTracking_Setup.sql"
+# Auf YOUR-SQL-SERVER als Admin ausführen:
+sqlcmd -S YOUR-SQL-SERVER -i "C:\Program Files\Tivoli\TSM\TDPSql\TDP-Backup-System\01_TDP_BackupTracking_Setup.sql"
 
 # Verifikation:
-sqlcmd -S SRPSDSQL011 -Q "SELECT COUNT(*) AS [Tables] FROM [master].[INFORMATION_SCHEMA].[TABLES] WHERE [TABLE_NAME] LIKE 'TDP_%' OR [TABLE_NAME] LIKE 'Backup%'"
+sqlcmd -S YOUR-SQL-SERVER -Q "SELECT COUNT(*) AS [Tables] FROM [master].[INFORMATION_SCHEMA].[TABLES] WHERE [TABLE_NAME] LIKE 'TDP_%' OR [TABLE_NAME] LIKE 'Backup%'"
 ```
 
 **Erwartet:** ~7 Tabellen
@@ -94,12 +94,12 @@ sqlcmd -S SRPSDSQL011 -Q "SELECT COUNT(*) AS [Tables] FROM [master].[INFORMATION
 {
   "Configuration": {
     "TdpDir": "C:\\Program Files\\Tivoli\\TSM\\TDPSql",
-    "SQLServer": "SRPSDSQL011",
+    "SQLServer": "YOUR-SQL-SERVER",
     "TSMPassword": "***DEIN-PASSWORD***",      ← Anpassen!
     "TsmOptFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\dsm.opt",
     "TdpConfigFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\tdpsql.cfg",
     "LogPath": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\03_Log",
-    "AlertEmail": "backup-admin@bank.de"    ← Anpassen!
+    "AlertEmail": "backup-admin@yourbank.de"    ← Anpassen!
   },
   "SelectedDatabases": [
     {
@@ -141,8 +141,8 @@ Get-ExecutionPolicy
 ### **Schritt 5: SQL Agent Job erstellen**
 
 ```powershell
-# Auf SRPSDSQL011 als Admin ausführen:
-sqlcmd -S SRPSDSQL011 -i "C:\Program Files\Tivoli\TSM\TDPSql\TDP-Backup-System\02_Create_Agent_Job.sql"
+# Auf YOUR-SQL-SERVER als Admin ausführen:
+sqlcmd -S YOUR-SQL-SERVER -i "C:\Program Files\Tivoli\TSM\TDPSql\TDP-Backup-System\02_Create_Agent_Job.sql"
 ```
 
 **Verifikation in SQL Server Management Studio:**
@@ -162,7 +162,7 @@ sqlcmd -S SRPSDSQL011 -i "C:\Program Files\Tivoli\TSM\TDPSql\TDP-Backup-System\0
 cd "C:\Program Files\Tivoli\TSM\TDPSql\TDP-Backup-System"
 
 # Direkter Test
-.\Backup-TdpFull.ps1 -SqlServer SRPSDSQL011
+.\Backup-TdpFull.ps1 -SqlServer YOUR-SQL-SERVER
 
 # Oder über Batch-Wrapper (wie Agent aufruft)
 cd "C:\Program Files\Tivoli\TSM\TDPSql\01_Backup_CMD"
@@ -179,13 +179,13 @@ Get-ChildItem "C:\Program Files\Tivoli\TSM\TDPSql\03_Log\Backup_TdpFull_*.log" |
   Get-Content -Tail 50
 
 # SQL-Logs
-sqlcmd -S SRPSDSQL011 -Q "SELECT TOP 20 * FROM [master].[dbo].[BackupLog] ORDER BY [ExecutionDate] DESC"
+sqlcmd -S YOUR-SQL-SERVER -Q "SELECT TOP 20 * FROM [master].[dbo].[BackupLog] ORDER BY [ExecutionDate] DESC"
 ```
 
 ### **Status-Report**
 
 ```powershell
-sqlcmd -S SRPSDSQL011 -Q "EXEC [master].[dbo].[sp_GetBackupStatusReport]"
+sqlcmd -S YOUR-SQL-SERVER -Q "EXEC [master].[dbo].[sp_GetBackupStatusReport]"
 ```
 
 ---
@@ -260,7 +260,7 @@ CREATE ALERT [TDP_Backup_Failed]
 | Agent-Job schlägt fehl | `Backup_TdpFull.cmd` nicht gefunden | Pfad prüfen: `C:\Program Files\Tivoli\TSM\TDPSql\01_Backup_CMD\` |
 | "PowerShell not found" | PS nicht im System PATH | `Set-ExecutionPolicy RemoteSigned` + Neustarten |
 | JSON-Fehler | Syntax-Fehler in BackupPlan.json | JSON in https://jsonlint.com/ validieren |
-| SQL-Verbindung fehlgeschlagen | SQL Server offline oder wrong credentials | `sqlcmd -S SRPSDSQL011 -Q "SELECT @@VERSION"` testen |
+| SQL-Verbindung fehlgeschlagen | SQL Server offline oder wrong credentials | `sqlcmd -S YOUR-SQL-SERVER -Q "SELECT @@VERSION"` testen |
 | DIFF-Backups fehlgeschlagen | Keine FULL vorhanden | Warten auf nächste Nacht (Sonderbehandlung läuft) |
 | Logs verschwunden | 90-Tage-Cleanup läuft | `sp_CleanupOldLogs @RetentionDays=90` anpassen |
 

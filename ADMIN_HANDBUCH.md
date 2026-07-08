@@ -30,14 +30,14 @@ cd "C:\Program Files\Tivoli\TSM\TDPSql\TDP-Backup-System"
 ```
 
 **Was der Wizard fragt:**
-- ✓ Welche SQL Server Instance? (z.B. `SRPSDSQL011`)
+- ✓ Welche SQL Server Instance? (z.B. `YOUR-SQL-SERVER`)
 - ✓ TSM-Passwort?
 - ✓ TDP-Dateien (.opt, .cfg)?
 - ✓ Agent-Job erstellen?
 
 **Schritt 2: SQL-Tabellen erstellen**
 ```powershell
-sqlcmd -S SRPSDSQL011 -i "01_TDP_BackupTracking_Setup.sql"
+sqlcmd -S YOUR-SQL-SERVER -i "01_TDP_BackupTracking_Setup.sql"
 ```
 
 **Schritt 3: Datenbanken hinzufügen**
@@ -165,7 +165,7 @@ EXEC [master].[dbo].[sp_GetAuditTrail]
 Get-Content "C:\Program Files\Tivoli\TSM\TDPSql\03_Log\Backup_TdpFull_*.log" -Tail 100
 
 # 3. SQL-Fehler checken
-sqlcmd -S SRPSDSQL011 -Q "SELECT TOP 20 * FROM [master].[dbo].[BackupLog_Errors]"
+sqlcmd -S YOUR-SQL-SERVER -Q "SELECT TOP 20 * FROM [master].[dbo].[BackupLog_Errors]"
 ```
 
 **Häufige Fehler:**
@@ -173,7 +173,7 @@ sqlcmd -S SRPSDSQL011 -Q "SELECT TOP 20 * FROM [master].[dbo].[BackupLog_Errors]
 | Fehler | Ursache | Fix |
 |--------|--------|-----|
 | "PowerShell not found" | PS-Ausführungsrichtlinie | `Set-ExecutionPolicy RemoteSigned` |
-| "SQL connection failed" | SQL offline oder falsche Creds | `sqlcmd -S SRPSDSQL011 -Q "SELECT @@VERSION"` |
+| "SQL connection failed" | SQL offline oder falsche Creds | `sqlcmd -S YOUR-SQL-SERVER -Q "SELECT @@VERSION"` |
 | "TDP executable not found" | TDP-Pfad falsch | System-Settings in GUI prüfen |
 | "JSON syntax error" | BackupPlan.json kaputt | https://jsonlint.com/ validieren |
 
@@ -196,7 +196,7 @@ $db = "NewDatabaseName"
 $tdpDir = "C:\Program Files\Tivoli\TSM\TDPSql"
 
 # Befehl zusammenstellen (wie im Skript)
-& "$tdpDir\tdpsqlc.exe" backup $db full /TSMPassword=xxxxx /SQLSERVer=SRPSDSQL011
+& "$tdpDir\tdpsqlc.exe" backup $db full /TSMPassword=xxxxx /SQLSERVer=YOUR-SQL-SERVER
 ```
 
 ### Problem 3: Backup dauert zu lange
@@ -399,7 +399,7 @@ cd "C:\Program Files\Tivoli\TSM\TDPSql\TDP-Backup-System"
 ```powershell
 # TDP-Restore starten (über tdpsqlc.exe)
 cd "C:\Program Files\Tivoli\TSM\TDPSql"
-.\tdpsqlc.exe restore YourDatabase full /TSMPassword=xxxx /SQLSERVer=SRPSDSQL011
+.\tdpsqlc.exe restore YourDatabase full /TSMPassword=xxxx /SQLSERVer=YOUR-SQL-SERVER
 ```
 
 **Dokumentation:** TDP Admin Guide oder TSM-Team
@@ -433,7 +433,7 @@ EXEC [master].[dbo].[sp_CleanupOldLogs] @RetentionDays=90
 # → Rechtsklick → Properties → "Enabled" = checkmark ✓
 
 # Oder per SQL:
-sqlcmd -S SRPSDSQL011 -Q "EXEC msdb.dbo.sp_update_job @job_name='TDP_Backup_Daily', @enabled=1"
+sqlcmd -S YOUR-SQL-SERVER -Q "EXEC msdb.dbo.sp_update_job @job_name='TDP_Backup_Daily', @enabled=1"
 ```
 
 ---
@@ -446,16 +446,16 @@ sqlcmd -S SRPSDSQL011 -Q "EXEC msdb.dbo.sp_update_job @job_name='TDP_Backup_Dail
 
 ```powershell
 # 1. Status prüfen
-sqlcmd -S SRPSDSQL011 -Q "SELECT @@VERSION"
+sqlcmd -S YOUR-SQL-SERVER -Q "SELECT @@VERSION"
 
 # 2. Logs prüfen
 Get-ChildItem "C:\Program Files\Tivoli\TSM\TDPSql\03_Log\" | Sort-Object LastWriteTime -Descending | Select-Object -First 5
 
 # 3. Agent-Job Status
-sqlcmd -S SRPSDSQL011 -Q "SELECT * FROM msdb.dbo.sysjobs WHERE name='TDP_Backup_Daily'"
+sqlcmd -S YOUR-SQL-SERVER -Q "SELECT * FROM msdb.dbo.sysjobs WHERE name='TDP_Backup_Daily'"
 
 # 4. Letzter Error
-sqlcmd -S SRPSDSQL011 -Q "SELECT TOP 20 * FROM [master].[dbo].[BackupLog_Errors] ORDER BY [ErrorDate] DESC"
+sqlcmd -S YOUR-SQL-SERVER -Q "SELECT TOP 20 * FROM [master].[dbo].[BackupLog_Errors] ORDER BY [ErrorDate] DESC"
 
 # 5. ALLE Infos sammeln und an Support
 ```

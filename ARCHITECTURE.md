@@ -221,9 +221,9 @@ Backup-TdpFull.ps1 (täglich 20:00 Uhr)
 Jede Instanz hat ihren eigenen Job, aber **gleichen Code**:
 
 ```
-SRPSDSQL011:
+YOUR-SQL-SERVER:
   └─ Job: TDP_Backup_Daily
-     └─ Backup-TdpFull.ps1 (mit SRPSDSQL011-Config)
+     └─ Backup-TdpFull.ps1 (mit YOUR-SQL-SERVER-Config)
 
 SRPSDSQL012:
   └─ Job: TDP_Backup_Daily

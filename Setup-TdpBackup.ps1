@@ -8,7 +8,7 @@
 # - Agent-Job erstellen
 #
 # USAGE:
-#   .\Setup-TdpBackup.ps1 -SQLInstance "SRPSDSQL011" -TSMPassword "xxx" -SQLSERVer "SRPSDSQL011"
+#   .\Setup-TdpBackup.ps1 -SQLInstance "YOUR-SQL-SERVER" -TSMPassword "xxx" -SQLSERVer "YOUR-SQL-SERVER"
 #   .\Setup-TdpBackup.ps1  (interaktiv)
 # ==============================================================================
 
@@ -216,7 +216,7 @@ function Show-SetupWizard {
     $form.Controls.Add($label1)
 
     $textSqlInstance = New-Object System.Windows.Forms.TextBox
-    $textSqlInstance.Text = $SQLInstance -eq "" ? "SRPSDSQL011" : $SQLInstance
+    $textSqlInstance.Text = $SQLInstance -eq "" ? "YOUR-SQL-SERVER" : $SQLInstance
     $textSqlInstance.Location = New-Object System.Drawing.Point(180, 70)
     $textSqlInstance.Size = New-Object System.Drawing.Size(300, 20)
     $form.Controls.Add($textSqlInstance)

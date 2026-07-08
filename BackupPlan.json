@@ -5,12 +5,12 @@
   "Scenario": "Szenario 1: Standard-Bank",
   "Configuration": {
     "TdpDir": "C:\\Program Files\\Tivoli\\TSM\\TDPSql",
-    "SQLServer": "SRPSDSQL011",
+    "SQLServer": "YOUR-SQL-SERVER",
     "TSMPassword": "***SECRET***",
     "TsmOptFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\dsm.opt",
     "TdpConfigFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\tdpsql.cfg",
     "LogPath": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\03_Log",
-    "AlertEmail": "admin@bank.de",
+    "AlertEmail": "admin@yourbank.de",
     "RetentionDays": 90
   },
   "Schedule": {

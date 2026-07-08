@@ -8,7 +8,7 @@
 
 param(
     [string]$ConfigPath = "C:\Program Files\Tivoli\TSM\TDPSql\BackupPlan.json",
-    [string]$SqlServer = "SRPSDSQL011"
+    [string]$SqlServer = "YOUR-SQL-SERVER"
 )
 
 Set-StrictMode -Version Latest

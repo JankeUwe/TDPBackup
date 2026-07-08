@@ -18,7 +18,7 @@ SET LogPath=%TdpDir%\03_Log
 SET LogFile=%LogPath%\Backup_TdpFull_%DATE:~10,4%%DATE:~4,2%%DATE:~7,2%_%TIME:~0,2%%TIME:~3,2%%TIME:~6,2%.log
 
 REM SQL Server Instance
-SET SQLServer=SRPSDSQL011
+SET SQLServer=YOUR-SQL-SERVER
 
 echo. >> %LogFile%
 echo ============================================================================== >> %LogFile%

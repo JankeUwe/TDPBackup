@@ -10,7 +10,7 @@
 --          in der [master] Datenbank.
 --
 -- VERWENDUNG (alle Server-Varianten):
---   sqlcmd -S SRPSDSQL011 -i "01_TDP_BackupTracking_Setup.sql"
+--   sqlcmd -S YOUR-SQL-SERVER -i "01_TDP_BackupTracking_Setup.sql"
 --   sqlcmd -S SRPSDSQL012 -i "01_TDP_BackupTracking_Setup.sql"
 --   sqlcmd -S [dein-sql-server] -i "01_TDP_BackupTracking_Setup.sql"
 -- ============================================================================

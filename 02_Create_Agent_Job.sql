@@ -8,7 +8,7 @@
 -- Der Job ruft nur eine CMD-Datei auf, genau wie bisher.
 --
 -- USAGE:
---   sqlcmd -S SRPSDSQL011 -i "02_Create_Agent_Job.sql"
+--   sqlcmd -S YOUR-SQL-SERVER -i "02_Create_Agent_Job.sql"
 -- ==============================================================================
 
 USE [msdb]

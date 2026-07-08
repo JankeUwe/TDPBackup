@@ -361,7 +361,7 @@ $labelSQLInstance.Size = New-Object System.Drawing.Size(100, 20)
 $tabSystemSettings.Controls.Add($labelSQLInstance)
 
 $textSQLInstance = New-Object System.Windows.Forms.TextBox
-$textSQLInstance.Text = "SRPSDSQL011"
+$textSQLInstance.Text = "YOUR-SQL-SERVER"
 $textSQLInstance.Location = New-Object System.Drawing.Point(120, 60)
 $textSQLInstance.Size = New-Object System.Drawing.Size(300, 20)
 $tabSystemSettings.Controls.Add($textSQLInstance)
