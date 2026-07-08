@@ -1,0 +1,17 @@
+# Logs
+*.log
+Logs/
+
+# Secrets
+*.config
+TdpBackup.config
+TSMPassword*
+
+# Temp
+*.tmp
+~*
+
+# IDE
+.vs/
+.vscode/
+*.swp
