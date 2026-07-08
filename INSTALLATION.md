@@ -99,7 +99,7 @@ sqlcmd -S YOUR-SQL-SERVER -Q "SELECT COUNT(*) AS [Tables] FROM [master].[INFORMA
     "TsmOptFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\dsm.opt",
     "TdpConfigFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\tdpsql.cfg",
     "LogPath": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\03_Log",
-    "AlertEmail": "backup-admin@example.com"    ← Anpassen!
+    "AlertEmail": "backup-admin@yourbank.de"    ← Anpassen!
   },
   "SelectedDatabases": [
     {

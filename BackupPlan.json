@@ -10,7 +10,7 @@
     "TsmOptFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\dsm.opt",
     "TdpConfigFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\tdpsql.cfg",
     "LogPath": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\03_Log",
-    "AlertEmail": "admin@example.com",
+    "AlertEmail": "admin@yourbank.de",
     "RetentionDays": 90
   },
   "Schedule": {

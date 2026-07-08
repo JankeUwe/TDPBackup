@@ -104,7 +104,7 @@ echo [4/5] Ersten Commit erstellen...
 git commit -m "Initial commit: TDP Backup System mit SQL-Setup, PowerShell-Scripts und GUI"
 if %ERRORLEVEL% NEQ 0 (
     echo Fehler beim Commit. Git konfigurieren:
-    echo git config user.email "admin@example.com"
+    echo git config user.email "admin@yourbank.de"
     echo git config user.name "Admin"
     exit /b 1
 )
@@ -168,7 +168,7 @@ sqlcmd -S YOUR-SQL-SERVER -i "01_TDP_BackupTracking_Setup.sql"
 
 ```powershell
 # SSH-Key generieren
-ssh-keygen -t ed25519 -C "admin@example.com"
+ssh-keygen -t ed25519 -C "admin@yourbank.de"
 
 # Key anzeigen
 Get-Content ~/.ssh/id_ed25519.pub
@@ -226,7 +226,7 @@ git pull  # = neueste Version herunterladen
 |--------|--------|
 | "Git: command not found" | Git installieren: https://git-scm.com/download/win |
 | "fatal: not a git repository" | `git init` im Verzeichnis ausführen |
-| "Please tell me who you are" | `git config user.email "admin@example.com"` und `git config user.name "Admin"` |
+| "Please tell me who you are" | `git config user.email "admin@yourbank.de"` und `git config user.name "Admin"` |
 | "Permission denied (publickey)" | SSH-Key nicht konfiguriert (siehe SSH-Key Setup oben) |
 | "Error: fatal: could not read Username" | Token statt Passwort verwenden (Settings → Developer settings → Personal access tokens) |
 
