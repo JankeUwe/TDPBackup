@@ -1,0 +1,46 @@
+{
+  "Version": "1.0",
+  "Description": "TDP Backup Plan - Zentrale Konfiguration für Bank-Backups",
+  "LastModified": "2026-07-08",
+  "Scenario": "Szenario 1: Standard-Bank",
+  "Configuration": {
+    "TdpDir": "C:\\Program Files\\Tivoli\\TSM\\TDPSql",
+    "SQLServer": "SRPSDSQL011",
+    "TSMPassword": "***SECRET***",
+    "TsmOptFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\dsm.opt",
+    "TdpConfigFile": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\tdpsql.cfg",
+    "LogPath": "C:\\Program Files\\Tivoli\\TSM\\TDPSql\\03_Log",
+    "AlertEmail": "admin@bank.de",
+    "RetentionDays": 90
+  },
+  "Schedule": {
+    "FullBackupDays": ["Sunday"],
+    "DifferentialBackupDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    "AllowSpecialHandling": true
+  },
+  "SelectedDatabases": [
+    {
+      "Name": "AdventureWorks",
+      "Enabled": true,
+      "BackupType": "FULL",
+      "IncludeInDifferential": true,
+      "Priority": 100,
+      "Notes": "Production database - höchste Priorität"
+    },
+    {
+      "Name": "MyAppDB",
+      "Enabled": true,
+      "BackupType": "FULL",
+      "IncludeInDifferential": true,
+      "Priority": 50,
+      "Notes": "Application database"
+    }
+  ],
+  "ExcludedDatabases": [
+    "tempdb",
+    "model",
+    "msdb",
+    "master"
+  ],
+  "Notes": "Bearbeitung: Datenbanken hinzufügen/entfernen in SelectedDatabases, dann Script neu starten"
+}
