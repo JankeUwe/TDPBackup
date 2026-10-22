@@ -7,6 +7,10 @@
 -- WICHTIG: xp_cmdshell ist NICHT erforderlich!
 -- Der Job ruft nur eine CMD-Datei auf, genau wie bisher.
 --
+-- SICHERHEIT: Existiert der Proxy [TDP_Backup_Proxy] (New-TdpAgentProxy.ps1),
+-- läuft der CmdExec-Step unter dessen Windows-Konto statt unter dem
+-- SQL-Agent-Dienstkonto. Ohne Proxy wird gewarnt, der Job aber trotzdem angelegt.
+--
 -- USAGE:
 --   sqlcmd -S <SQLInstance> -i "02_Create_Agent_Job.sql"
 -- ==============================================================================
@@ -17,6 +21,29 @@ GO
 PRINT '========== TDP Backup - SQL Agent Job Setup =========='
 PRINT 'Server: ' + @@SERVERNAME
 PRINT ''
+
+-- Job-Owner per SID 0x01 statt Name: funktioniert auch bei umbenanntem sa
+DECLARE @owner SYSNAME = SUSER_SNAME(0x01)
+
+-- Proxy für den CmdExec-Step (NULL = Agent-Dienstkonto)
+DECLARE @proxy_name SYSNAME = NULL
+SELECT @proxy_name = p.[name]
+FROM [msdb].[dbo].[sysproxies] p
+JOIN [msdb].[dbo].[sysproxysubsystem] ps ON ps.[proxy_id] = p.[proxy_id]
+JOIN [msdb].[dbo].[syssubsystems] s      ON s.[subsystem_id] = ps.[subsystem_id]
+WHERE p.[name] = N'TDP_Backup_Proxy'
+  AND p.[enabled] = 1
+  AND s.[subsystem] = N'CmdExec'
+
+IF @proxy_name IS NULL
+BEGIN
+    PRINT 'WARNUNG: Proxy [TDP_Backup_Proxy] nicht gefunden/nicht für CmdExec freigegeben.'
+    PRINT '         Job-Step läuft unter dem SQL-Agent-Dienstkonto.'
+    PRINT '         Empfohlen: .\New-TdpAgentProxy.ps1 -SQLInstance <SQLInstance>, dann dieses Skript erneut.'
+    PRINT ''
+END
+ELSE
+    PRINT 'Proxy gefunden: [' + @proxy_name + '] - Job-Step läuft unter dessen Konto'
 
 -- ==============================================================================
 -- 1. Job erstellen (oder aktualisieren falls vorhanden)
@@ -38,7 +65,7 @@ EXEC [msdb].[dbo].[sp_add_job]
     @enabled = 1,
     @start_step_name = 'Execute_TdpFull_Backup',
     @category_name = 'Database Maintenance',
-    @owner_login_name = 'sa',
+    @owner_login_name = @owner,
     @description = 'TDP Backup - Täglich 20:00 Uhr (FULL + DIFF)',
     @job_id = @job_id OUTPUT
 
@@ -56,6 +83,7 @@ EXEC [msdb].[dbo].[sp_add_jobstep]
     @step_id = 1,
     @subsystem = 'CmdExec',  -- Batch-Ausführung (NICHT PowerShell!)
     @command = 'C:\Program Files\Tivoli\TSM\TDPSql\01_Backup_CMD\Backup_TdpFull.cmd',
+    @proxy_name = @proxy_name, -- NULL = Agent-Dienstkonto
     @retry_attempts = 2,      -- 2x retry bei Fehler
     @retry_interval = 1,      -- 1 Minute warten
     @on_success_action = 1,   -- Gehe zum nächsten Step / Job erfolgreich
@@ -134,6 +162,8 @@ SELECT
     [step_name] AS [StepName],
     [subsystem] AS [Subsystem],
     [command] AS [Command],
+    ISNULL((SELECT p.[name] FROM [msdb].[dbo].[sysproxies] p WHERE p.[proxy_id] = [sysjobsteps].[proxy_id]),
+           '(Agent-Dienstkonto)') AS [RunAs],
     CASE WHEN [retry_attempts] > 0 THEN CAST([retry_attempts] AS VARCHAR(2)) + 'x' ELSE 'No Retry' END AS [Retry]
 FROM [msdb].[dbo].[sysjobsteps]
 WHERE [job_id] = (SELECT [job_id] FROM [msdb].[dbo].[sysjobs] WHERE [name] = 'TDP_Backup_Daily')

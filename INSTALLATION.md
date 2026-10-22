@@ -140,10 +140,25 @@ Get-ExecutionPolicy
 
 ### **Schritt 5: SQL Agent Job erstellen**
 
+**Empfohlen vorab: eigenes Windows-Konto per Agent-Proxy** (sonst läuft der Job-Step unter dem SQL-Agent-Dienstkonto):
+
+```powershell
+# Credential + Proxy [TDP_Backup_Proxy] für CmdExec anlegen (fragt Konto/Passwort ab)
+.\New-TdpAgentProxy.ps1 -SQLInstance "<SQLInstance>" -CreateLogin
+
+# Setup einmalig ALS PROXY-KONTO ausführen, damit es TdpBackup.config (DPAPI) entschlüsseln kann
+runas /user:<DOMAIN\svc_tdpbackup> "powershell.exe -File Setup-TdpBackup.ps1"
+```
+
+Dann den Job anlegen. Das Skript erkennt den Proxy automatisch:
+
 ```powershell
 # Auf <SQLInstance> als Admin ausführen:
 sqlcmd -S <SQLInstance> -i "C:\Program Files\Tivoli\TSM\TDPSql\TDP-Backup-System\02_Create_Agent_Job.sql"
 ```
+
+Die Ausgabe meldet `Proxy gefunden: [TDP_Backup_Proxy]` oder eine WARNUNG, falls kein Proxy existiert.
+Ob das Proxy-Login `sysadmin` braucht (`-GrantSysadmin`), gegen die IBM-Doku der eingesetzten TDP-Version prüfen.
 
 **Verifikation in SQL Server Management Studio:**
 - SQL Server Agent → Jobs

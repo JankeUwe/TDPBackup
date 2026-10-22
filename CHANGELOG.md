@@ -1,5 +1,25 @@
 # TDP Backup System — Changelog
 
+## [Unreleased] — 2026-10-22
+
+### New: SQL Agent proxy for the backup job step (`New-TdpAgentProxy.ps1`)
+
+The CmdExec step of `TDP_Backup_Daily` always ran under the SQL Agent service account. The new
+`New-TdpAgentProxy.ps1` creates an SQL credential for a dedicated Windows account, the Agent proxy
+`TDP_Backup_Proxy` and its grant for the CmdExec subsystem, and optionally a Windows login
+(`-CreateLogin`, `-GrantSysadmin`) for it. The password is passed only as an SQL parameter and is
+never written to a file, log or command line. `02_Create_Agent_Job.sql` picks the proxy up
+automatically and attaches it to the job step. Without a proxy it prints a warning and still
+creates the job under the service account, as before. The job overview now shows a `RunAs` column.
+
+Because `TdpBackup.config` is DPAPI-encrypted per user, `Setup-TdpBackup.ps1` has to be run once
+as the proxy account (`runas`), otherwise the job cannot decrypt the TSM password.
+
+### Fix: job owner hardcoded to `sa`
+
+`02_Create_Agent_Job.sql` used `@owner_login_name = 'sa'`, which fails on instances where `sa` was
+renamed (a common hardening step). The owner is now resolved via `SUSER_SNAME(0x01)`.
+
 ## [Unreleased] — 2026-08-11 (2)
 
 ### Fix: hardcoded server names and email addresses removed
