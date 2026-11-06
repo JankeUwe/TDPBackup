@@ -73,7 +73,7 @@ renamed (a common hardening step). The owner is now resolved via `SUSER_SNAME(0x
 
 ### Fix: hardcoded server names and email addresses removed
 
-`YOUR-SQL-SERVER`/`012`/`013` and `admin@example.com` appeared as defaults and examples throughout the
+Real server names and an example email address appeared as defaults and examples throughout the
 scripts, SQL setup, and docs. Replaced with `<SQLInstance>`-style placeholders in docs/examples;
 removed the (unused) `-SqlServer` parameter from `Backup-TdpFull.ps1` and the unused `-SQLSERVer`
 parameter from `Setup-TdpBackup.ps1` instead of giving them a hardcoded default — the instance
