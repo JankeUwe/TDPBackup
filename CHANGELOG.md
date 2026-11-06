@@ -1,5 +1,29 @@
 # TDP Backup System — Changelog
 
+## [Unreleased] — 2026-11-06 (2)
+
+### New: add-on for existing separate jobs (`Backup-TdpNewDatabases.ps1`, `03_Add_NewDatabases_Step.sql`)
+
+For installations that run three plain jobs (`backup * difffull`, `backup * full`, `backup * log` via
+their own cmd files) instead of `Backup_TdpFull.cmd`. Those cmd files stay unchanged and keep backing up
+all databases. A new first job step, `Backup_NewDatabasesFull.cmd` -> `Backup-TdpNewDatabases.ps1`,
+asks SQL Server which user databases have no differential base (`differential_base_lsn IS NULL`: new,
+dropped and recreated) and runs `tdpsqlc backup <db> full` for exactly those, so `backup * difffull`
+and `backup * log` no longer fail for them until the weekly FULL.
+
+- Skips databases with a BACKUP currently running (e.g. the weekly full), AG secondaries, snapshots,
+  non-ONLINE databases; `-ExcludeDatabases` and `-DryRun` available.
+- Success only counts when SQL Server afterwards reports a base, not on the TDP exit code alone.
+- Named mutex prevents overlapping runs; exit code 1 if any FULL failed.
+- Uses the TSM node settings from the existing `dsm.opt` / `tdpsql.cfg` (`PASSWORDAccess generate`), no
+  password handling.
+- `03_Add_NewDatabases_Step.sql` inserts the step as step 1 of an existing job (diff job, log job);
+  idempotent. On failure the job continues with the original backup step.
+
+Tested against SQL Server 2025 with a `tdpsqlc` stub (new, name with space, recreated, failing, "claims
+success but did nothing", excluded, dry run) and the step script on a dummy job. Not yet run with the real
+`tdpsqlc.exe`.
+
 ## [Unreleased] — 2026-11-06
 
 ### Fix: DIFF failed for new, recreated or restored databases until the next FULL

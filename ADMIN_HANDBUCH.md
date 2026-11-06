@@ -83,6 +83,23 @@ bekommt dann am selben Abend ihr erstes FULL. Fehlt der Schlüssel, bleibt das V
 bisher (nur manuell gepflegte JSON). Eine Datenbank dauerhaft ausnehmen: mit `Enabled: false`
 eintragen oder in `ExcludedDatabases` aufnehmen.
 
+### Variante: bestehende Einzel-Jobs beibehalten (Diff / FullWeekly / TLog)
+
+Laufen bei dir drei getrennte Jobs mit `backup * difffull`, `backup * full` und `backup * log`,
+bleiben deren cmd-Dateien unverändert. Neue Datenbanken ohne FULL-Basis fängt ein vorgeschalteter
+Step ab:
+
+1. `Backup_NewDatabasesFull.cmd` und `Backup-TdpNewDatabases.ps1` in den Ordner `01_Backup_CMD`
+   kopieren, in der cmd `SqlInstance` setzen (wie `/SQLSERVer=` in den bestehenden cmd-Dateien).
+2. `03_Add_NewDatabases_Step.sql` je Job einmal ausführen (`@job_name` anpassen), mindestens für
+   den Diff-Job. Für den TLog-Job ebenfalls, sonst scheitert dort eine neue Datenbank im Recovery
+   Model FULL bis zum Abend.
+3. Prüfen: `Backup-TdpNewDatabases.ps1 -SqlInstance <Instanz> -DryRun` zeigt, welche Datenbanken ein
+   FULL bekämen, ohne etwas zu sichern. Protokoll: `03_Log\newdb_full_summary.log`.
+
+Der Step sichert nur Datenbanken ohne Differential-Basis. Läuft gerade ein BACKUP für eine
+Datenbank (z.B. das wöchentliche FULL), wird sie übersprungen.
+
 ### Status täglich prüfen (3 Minuten)
 
 **SQL Query im SSMS ausführen:**
