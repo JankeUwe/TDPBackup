@@ -243,7 +243,7 @@ WHERE DatabaseName = 'MyAppDB'
 
 | Fehler | Ursache | Lösung |
 |--------|--------|--------|
-| DIFF-Backup schlägt fehl | Keine FULL vorhanden | Warten bis Sonderbehandlung FULL durchführt (nächste Nacht) |
+| DIFF-Backup schlägt fehl | Keine FULL vorhanden | Wird seit der Diff-Basis-Prüfung automatisch vermieden: ohne Basis auf dem Server läuft statt des DIFF ein FULL |
 | TDP-Dienst nicht erreichbar | TDP offline | `sqlcmd -S <SQLInstance> -Q "EXEC xp_cmdshell 'C:\...\tdpsqlc.exe -?'"` |
 | JSON-Fehler beim Laden | JSON-Syntax ungültig | JSON in https://jsonlint.com/ validieren |
 | SQL-Verbindung fehlgeschlagen | SQL Server offline | Connectivity checken: `sqlcmd -S <SQLInstance> -Q "SELECT @@VERSION"` |

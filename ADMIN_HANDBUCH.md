@@ -65,12 +65,23 @@ sqlcmd -S <SQLInstance> -i "01_TDP_BackupTracking_Setup.sql"
 │  └─ Alle Datenbanken (Enabled=true) → FULL sichern
 │
 ├─ MONTAG-SAMSTAG (DIFFERENTIAL-Backup)
-│  ├─ DBs mit FULL-Backup → DIFF sichern
-│  └─ DBs ohne FULL-Backup → SKIP (warten auf Sonderbehandlung)
+│  ├─ Vor jedem DIFF: Diff-Basis auf dem SQL Server prüfen (differential_base_lsn)
+│  ├─ Basis vorhanden → DIFF sichern
+│  ├─ Basis fehlt (neu angelegt, gedroppt + neu erstellt, restored) → FULL statt DIFF
+│  ├─ DB hat in diesem Lauf schon ein FULL bekommen → kein DIFF
+│  └─ DB offline oder nicht mehr vorhanden → überspringen
 │
 └─ JEDERZEIT (Sonderbehandlung)
    └─ Neue DBs ohne FULL → sofort FULL durchführen
 ```
+
+**Neue Datenbanken automatisch aufnehmen:** Mit `"AutoAddNewDatabases": true` im Abschnitt
+`Schedule` von `BackupPlan.json` trägt der Lauf ONLINE-Datenbanken, die weder in
+`SelectedDatabases` (auch nicht mit `Enabled: false`) noch in `ExcludedDatabases` stehen,
+selbst in die JSON ein (Priorität 50, FULL, in Differential eingeschlossen). Die neue DB
+bekommt dann am selben Abend ihr erstes FULL. Fehlt der Schlüssel, bleibt das Verhalten wie
+bisher (nur manuell gepflegte JSON). Eine Datenbank dauerhaft ausnehmen: mit `Enabled: false`
+eintragen oder in `ExcludedDatabases` aufnehmen.
 
 ### Status täglich prüfen (3 Minuten)
 

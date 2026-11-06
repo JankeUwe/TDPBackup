@@ -115,6 +115,91 @@ function Get-DatabasesForDifferentialBackup {
     return $results
 }
 
+function Test-DifferentialBase {
+    # Prueft gegen SQL Server selbst (nicht gegen die Tracking-Tabelle), ob fuer die
+    # Datenbank eine Differential-Basis existiert. Gibt zurueck:
+    #   'Ok'       - differential_base_lsn gesetzt, Diff moeglich
+    #   'NoBase'   - Datenbank existiert, aber noch kein FULL seit Anlage/Restore
+    #                (z.B. neu angelegt, oder gedroppt + gleichnamig neu erstellt)
+    #   'NotFound' - Datenbank existiert nicht (mehr) auf dem Server
+    #   'Offline'  - Datenbank nicht ONLINE, Backup nicht moeglich
+    param(
+        [System.Data.SqlClient.SqlConnection]$Connection,
+        [string]$DatabaseName
+    )
+
+    $sql = @"
+    SELECT d.state_desc, mf.differential_base_lsn
+    FROM sys.databases d
+    INNER JOIN sys.master_files mf ON mf.database_id = d.database_id AND mf.file_id = 1
+    WHERE d.name = @DbName
+"@
+
+    $cmd = $Connection.CreateCommand()
+    $cmd.CommandText = $sql
+    $cmd.Parameters.AddWithValue("@DbName", $DatabaseName) | Out-Null
+
+    $reader = $cmd.ExecuteReader()
+    try {
+        if (-not $reader.Read()) { return 'NotFound' }
+        if ($reader["state_desc"] -ne 'ONLINE') { return 'Offline' }
+        if ($reader["differential_base_lsn"] -is [DBNull]) { return 'NoBase' }
+        return 'Ok'
+    }
+    finally {
+        $reader.Close()
+    }
+}
+
+function Reset-FullBackupFlag {
+    # Setzt das Tracking-Flag zurueck, wenn SQL Server keine Diff-Basis kennt.
+    # Danach greift bei Bedarf auch die Sonderbehandlung (Schritt 5) am naechsten Lauf.
+    param(
+        [System.Data.SqlClient.SqlConnection]$Connection,
+        [string]$DatabaseName
+    )
+
+    $cmd = $Connection.CreateCommand()
+    $cmd.CommandText = "UPDATE [master].[dbo].[BackupStatus] SET FullBackupExists = 0, DifferentialAllowed = 0, LastCheckedDate = GETDATE() WHERE DatabaseName = @DbName"
+    $cmd.Parameters.AddWithValue("@DbName", $DatabaseName) | Out-Null
+    $cmd.ExecuteNonQuery() | Out-Null
+}
+
+function Get-UnconfiguredDatabases {
+    # Liefert ONLINE-Benutzerdatenbanken, die weder in BackupPlan.json (SelectedDatabases,
+    # egal ob Enabled oder nicht) noch in ExcludedDatabases stehen. Eine bewusst mit
+    # Enabled=false eingetragene Datenbank gilt als bekannt und wird nicht erneut angelegt.
+    # Snapshots und lokale AG-Secondaries werden ausgelassen (dort ist kein Backup moeglich).
+    param(
+        [System.Data.SqlClient.SqlConnection]$Connection,
+        [string[]]$KnownNames = @(),
+        [string[]]$ExcludedNames = @()
+    )
+
+    $sql = @"
+    SELECT d.name
+    FROM sys.databases d
+    WHERE d.database_id > 4
+      AND d.state_desc = 'ONLINE'
+      AND d.source_database_id IS NULL
+      AND NOT EXISTS (
+            SELECT 1 FROM sys.dm_hadr_database_replica_states rs
+            WHERE rs.database_id = d.database_id AND rs.is_local = 1 AND rs.is_primary_replica = 0)
+    ORDER BY d.name
+"@
+
+    $cmd = $Connection.CreateCommand()
+    $cmd.CommandText = $sql
+
+    $reader = $cmd.ExecuteReader()
+    $names = @()
+    while ($reader.Read()) { $names += [string]$reader["name"] }
+    $reader.Close()
+
+    # -notcontains ist case-insensitiv, passend zur ueblichen SQL-Server-Collation
+    return @($names | Where-Object { ($KnownNames -notcontains $_) -and ($ExcludedNames -notcontains $_) })
+}
+
 function Update-BackupStatus {
     param(
         [System.Data.SqlClient.SqlConnection]$Connection,
@@ -193,4 +278,4 @@ function Log-BackupResult {
     $cmd.ExecuteNonQuery() | Out-Null
 }
 
-Export-ModuleMember -Function Get-SqlConnection, Get-DatabasesWithoutFullBackup, Get-DatabasesForFullBackup, Get-DatabasesForDifferentialBackup, Update-BackupStatus, Log-BackupResult
+Export-ModuleMember -Function Get-SqlConnection, Get-DatabasesWithoutFullBackup, Get-DatabasesForFullBackup, Get-DatabasesForDifferentialBackup, Test-DifferentialBase, Reset-FullBackupFlag, Get-UnconfiguredDatabases, Update-BackupStatus, Log-BackupResult

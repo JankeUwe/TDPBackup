@@ -16,7 +16,8 @@
   "Schedule": {
     "FullBackupDays": ["Sunday"],
     "DifferentialBackupDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-    "AllowSpecialHandling": true
+    "AllowSpecialHandling": true,
+    "AutoAddNewDatabases": true
   },
   "SelectedDatabases": [
     {

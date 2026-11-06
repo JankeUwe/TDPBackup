@@ -34,6 +34,41 @@ function Get-BackupConfig {
     return $config
 }
 
+function Add-DatabasesToBackupPlan {
+    # Traegt neue Datenbanken dauerhaft in BackupPlan.json ein (und im uebergebenen
+    # $Config-Objekt). Noetig, weil Sync-JsonToDatabase TDP_BackupPlan bei jedem Lauf
+    # komplett aus der JSON neu aufbaut - nur in SQL angelegte Eintraege waeren am
+    # naechsten Abend wieder weg.
+    param(
+        [object]$Config,
+        [string]$ConfigPath,
+        [string[]]$DatabaseNames
+    )
+
+    $added = @()
+    foreach ($name in $DatabaseNames) {
+        $added += [pscustomobject]@{
+            Name                  = $name
+            Enabled               = $true
+            BackupType            = "FULL"
+            IncludeInDifferential = $true
+            Priority              = 50
+            Notes                 = "Auto-added $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+        }
+    }
+
+    $Config.SelectedDatabases = @($Config.SelectedDatabases) + $added
+    if ($Config.PSObject.Properties['LastModified']) {
+        $Config.LastModified = (Get-Date -Format 'yyyy-MM-dd')
+    }
+
+    # Atomar schreiben: erst Temp-Datei, dann ersetzen. UTF-8 ohne BOM.
+    $json = $Config | ConvertTo-Json -Depth 10
+    $tmp = "$ConfigPath.tmp"
+    [System.IO.File]::WriteAllText($tmp, $json, (New-Object System.Text.UTF8Encoding($false)))
+    Move-Item -Path $tmp -Destination $ConfigPath -Force
+}
+
 function Sync-JsonToDatabase {
     param(
         [object]$Config,
@@ -101,4 +136,4 @@ function Sync-JsonToDatabase {
     }
 }
 
-Export-ModuleMember -Function Get-BackupConfig, Sync-JsonToDatabase
+Export-ModuleMember -Function Get-BackupConfig, Add-DatabasesToBackupPlan, Sync-JsonToDatabase

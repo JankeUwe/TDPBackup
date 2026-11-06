@@ -31,6 +31,60 @@ $ExecutionTime = Get-Date
 $LogTimestamp = $ExecutionTime.ToString("yyyyMMdd_HHmmss")
 $DayOfWeek = $ExecutionTime.DayOfWeek
 
+# Datenbanken, die in diesem Lauf bereits ein erfolgreiches FULL erhalten haben
+# (Sonderbehandlung oder planmaessiges FULL) - brauchen am selben Abend kein DIFF mehr.
+$fullDoneThisRun = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+
+function Invoke-FullBackupTracked {
+    # FULL-Backup inkl. Status- und Log-Eintrag. Liest $TdpDir, $TSQLServer, $TSMPassword,
+    # $TsmOptFile, $TdpConfigFile, $LogPath, $LogTimestamp aus dem Script-Scope (werden
+    # in Step 1 gesetzt, bevor diese Funktion aufgerufen wird). Gibt $true bei Erfolg zurueck.
+    param(
+        [System.Data.SqlClient.SqlConnection]$Connection,
+        [string]$DatabaseName
+    )
+
+    $logFile = Join-Path $LogPath "backup_FULL_${DatabaseName}_$LogTimestamp.log"
+
+    $result = Invoke-TdpBackup `
+        -DatabaseName $DatabaseName `
+        -BackupType "FULL" `
+        -TdpDir $TdpDir `
+        -SqlServer $TSQLServer `
+        -TsmPassword $TSMPassword `
+        -TsmOptFile $TsmOptFile `
+        -TdpConfigFile $TdpConfigFile `
+        -LogFile $logFile
+
+    if ($result.Success) {
+        Update-BackupStatus -Connection $Connection -DatabaseName $DatabaseName `
+            -BackupType "FULL" -Status "SUCCESS" -BackupPath $logFile
+        [void]$fullDoneThisRun.Add($DatabaseName)
+    }
+    else {
+        Update-BackupStatus -Connection $Connection -DatabaseName $DatabaseName `
+            -BackupType "FULL" -Status "FAILED" -ErrorMessage $result.ErrorMessage
+    }
+
+    $statusText = if ($result.Success) { "SUCCESS" } else { "FAILED" }
+    Log-BackupResult `
+        -Connection $Connection `
+        -DatabaseName $DatabaseName `
+        -BackupType "FULL" `
+        -Status $statusText `
+        -StartTime $result.StartTime `
+        -EndTime $result.EndTime `
+        -SizeMB $result.SizeMB `
+        -ErrorCode $result.ExitCode `
+        -ErrorMessage $result.ErrorMessage `
+        -BackupPath $logFile
+
+    if (-not $result.Success) {
+        Write-Host "    ✗ FULL FAILED: $($result.ErrorMessage)"
+    }
+    return [bool]$result.Success
+}
+
 Write-Host ""
 Write-Host "=============================================================================="
 Write-Host "TDP Backup Orchestration"
@@ -76,6 +130,31 @@ try {
     $dbConnection = Get-SqlConnection -SqlServer $TSQLServer
     Write-Host "  ✓ Connected to $TSQLServer"
 
+    # Neue Datenbanken erkennen und dauerhaft in BackupPlan.json aufnehmen (opt-in).
+    # Muss VOR dem Sync passieren: Sync baut TDP_BackupPlan komplett aus der JSON neu auf.
+    $autoAddProp = $config.Schedule.PSObject.Properties['AutoAddNewDatabases']
+    if ($autoAddProp -and $autoAddProp.Value) {
+        Write-Host "Step 3b: Discovering new databases..."
+        try {
+            $knownNames = @($config.SelectedDatabases | ForEach-Object { $_.Name })
+            $excludedProp = $config.PSObject.Properties['ExcludedDatabases']
+            $excludedNames = if ($excludedProp -and $excludedProp.Value) { @($excludedProp.Value) } else { @() }
+
+            $newDbs = @(Get-UnconfiguredDatabases -Connection $dbConnection -KnownNames $knownNames -ExcludedNames $excludedNames)
+            if ($newDbs.Count -gt 0) {
+                Add-DatabasesToBackupPlan -Config $config -ConfigPath $ConfigPath -DatabaseNames $newDbs
+                Write-Host "  ✓ $($newDbs.Count) new database(s) added to BackupPlan.json: $($newDbs -join ', ')"
+            }
+            else {
+                Write-Host "  ✓ No new databases found"
+            }
+        }
+        catch {
+            # Discovery ist Zusatz - ein Fehler hier darf die Sicherung nicht verhindern
+            Write-Host "  ⚠ Database discovery failed (backup continues): $($_.Exception.Message)"
+        }
+    }
+
     # JSON zu SQL synchronisieren
     Write-Host "Step 4: Syncing configuration to database..."
     Sync-JsonToDatabase -Config $config -SqlServer $TSQLServer
@@ -119,6 +198,7 @@ try {
                     -SizeMB 0 `
                     -BackupPath $logFile
 
+                [void]$fullDoneThisRun.Add($db.DatabaseName)
                 Write-Host "    ✓ Database $($db.DatabaseName) is now protected"
             }
             else {
@@ -187,6 +267,7 @@ try {
                         -BackupType "FULL" `
                         -Status "SUCCESS" `
                         -BackupPath $logFile
+                    [void]$fullDoneThisRun.Add($db.DatabaseName)
                     Write-Host "    ✓ Success"
                 }
                 else {
@@ -228,6 +309,29 @@ try {
 
             foreach ($db in $dbsForDiff) {
                 Write-Host ""
+
+                # Heute schon ein FULL erhalten (Sonderbehandlung / planmaessig) -> kein DIFF noetig
+                if ($fullDoneThisRun.Contains($db.DatabaseName)) {
+                    Write-Host "  → SKIP DIFF: $($db.DatabaseName) (FULL already ran in this run)"
+                    continue
+                }
+
+                # Diff-Basis gegen SQL Server pruefen, nicht dem Tracking-Flag vertrauen
+                $baseState = Test-DifferentialBase -Connection $dbConnection -DatabaseName $db.DatabaseName
+                if ($baseState -eq 'NotFound' -or $baseState -eq 'Offline') {
+                    Write-Host "  → SKIP: $($db.DatabaseName) is $baseState on the server - no backup possible"
+                    continue
+                }
+                if ($baseState -eq 'NoBase') {
+                    Write-Host "  → $($db.DatabaseName): no differential base on the server (new/recreated/restored database)"
+                    Write-Host "    Running FULL instead of DIFF"
+                    Reset-FullBackupFlag -Connection $dbConnection -DatabaseName $db.DatabaseName
+                    if (Invoke-FullBackupTracked -Connection $dbConnection -DatabaseName $db.DatabaseName) {
+                        Write-Host "    ✓ FULL (instead of DIFF) succeeded - database is protected"
+                    }
+                    continue
+                }
+
                 Write-Host "  → DIFF: $($db.DatabaseName)"
 
                 $logFile = Join-Path $LogPath "backup_DIFF_$($db.DatabaseName)_$LogTimestamp.log"

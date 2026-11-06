@@ -276,7 +276,7 @@ CREATE ALERT [TDP_Backup_Failed]
 | "PowerShell not found" | PS nicht im System PATH | `Set-ExecutionPolicy RemoteSigned` + Neustarten |
 | JSON-Fehler | Syntax-Fehler in BackupPlan.json | JSON in https://jsonlint.com/ validieren |
 | SQL-Verbindung fehlgeschlagen | SQL Server offline oder wrong credentials | `sqlcmd -S <SQLInstance> -Q "SELECT @@VERSION"` testen |
-| DIFF-Backups fehlgeschlagen | Keine FULL vorhanden | Warten auf nächste Nacht (Sonderbehandlung läuft) |
+| DIFF-Backups fehlgeschlagen | Keine FULL vorhanden | Wird automatisch vermieden: ohne Diff-Basis auf dem Server läuft statt des DIFF ein FULL |
 | Logs verschwunden | 90-Tage-Cleanup läuft | `sp_CleanupOldLogs @RetentionDays=90` anpassen |
 
 ---

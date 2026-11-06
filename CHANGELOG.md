@@ -1,5 +1,30 @@
 # TDP Backup System — Changelog
 
+## [Unreleased] — 2026-11-06
+
+### Fix: DIFF failed for new, recreated or restored databases until the next FULL
+
+The DIFF step only trusted the tracking flag `BackupStatus.FullBackupExists`. A database that was
+dropped and recreated under the same name, restored, or otherwise lost its differential base kept
+the flag at 1, so the DIFF failed every night until the weekly FULL. Before each DIFF the script now
+asks SQL Server itself (`sys.master_files.differential_base_lsn`, new `Test-DifferentialBase`):
+
+- base present: DIFF as before
+- base missing: tracking flag is reset (`Reset-FullBackupFlag`) and a FULL runs instead of the DIFF
+- database offline or gone: skipped with a message
+- database that already got a successful FULL in the same run (special handling or scheduled FULL):
+  no DIFF afterwards
+
+### New: automatic pick-up of new databases (`Schedule.AutoAddNewDatabases`)
+
+Opt-in via `"AutoAddNewDatabases": true` in `BackupPlan.json` (enabled in the shipped template, absent
+key = off). ONLINE user databases that are in neither `SelectedDatabases` (enabled or not) nor
+`ExcludedDatabases` are written into `BackupPlan.json` (`Add-DatabasesToBackupPlan`, atomic write) and
+get their first FULL in the same run. Snapshots and local AG secondaries are ignored. It has to write
+the JSON because `Sync-JsonToDatabase` rebuilds `TDP_BackupPlan` from it on every run, and the SQL-side
+`sp_DiscoverNewDatabases` is not called by the script. A failure in discovery is logged and does not
+stop the backup.
+
 ## [Unreleased] — 2026-10-22
 
 ### New: SQL Agent proxy for the backup job step (`New-TdpAgentProxy.ps1`)
